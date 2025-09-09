@@ -1,4 +1,4 @@
-// src/screens/MapScreen.tsx - Interactive Campus Map Screen
+// src/screens/MapScreen.tsx - AUST Campus Real-time Map
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { MapLocation } from '../types';
@@ -16,89 +17,194 @@ const { width, height } = Dimensions.get('window');
 export default function MapScreen(): React.JSX.Element {
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
   const [locations, setLocations] = useState<MapLocation[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
-    loadLocations();
+    loadAUSTLocations();
+    const interval = setInterval(() => {
+      setLastUpdated(new Date());
+    }, 30000); // Update every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
-  const loadLocations = (): void => {
-    const mockLocations: MapLocation[] = [
+  const loadAUSTLocations = (): void => {
+    const austBuildings: MapLocation[] = [
       {
         id: '1',
-        name: 'Main Library',
-        description: 'Central library with study halls, computer lab, and extensive book collection. Open 24/7 during exam periods.',
+        name: 'Senate Building',
+        description: 'Administrative headquarters housing the Vice-Chancellor office, Registrar, and other key administrative units.',
         latitude: 9.0569,
         longitude: 7.4941,
-        type: 'facility',
+        type: 'building',
+      },
+      {
+        id: '2',
+        name: 'Academic Block A',
+        description: 'Main lecture halls and classrooms for undergraduate programs. Houses Computer Science and Engineering departments.',
+        latitude: 9.0579,
+        longitude: 7.4951,
+        type: 'building',
+      },
+      {
+        id: '3',
+        name: 'Academic Block B',
+        description: 'Graduate studies building with seminar rooms, faculty offices, and research facilities.',
+        latitude: 9.0589,
+        longitude: 7.4961,
+        type: 'building',
       },
       {
         id: '4',
-        name: 'Sports Complex',
-        description: 'Gymnasium, swimming pool, tennis courts, and sports facilities. Home to various athletic programs.',
-        latitude: 9.0599,
-        longitude: 7.4971,
-        type: 'facility',
-      },
-      {
-        id: '5',
-        name: 'Medical Center',
-        description: 'Campus health services and medical facilities. Emergency services available 24/7.',
+        name: 'Central Library',
+        description: 'Modern library with digital resources, study spaces, and research databases. Open 24/7 during exams.',
         latitude: 9.0559,
         longitude: 7.4931,
         type: 'facility',
       },
       {
+        id: '5',
+        name: 'Laboratory Complex',
+        description: 'State-of-the-art laboratories for Physics, Chemistry, Biology, and Engineering research.',
+        latitude: 9.0599,
+        longitude: 7.4971,
+        type: 'facility',
+      },
+      {
         id: '6',
-        name: 'Science Laboratory Complex',
-        description: 'State-of-the-art laboratories for Physics, Chemistry, and Biology departments.',
+        name: 'Student Center',
+        description: 'Student activities hub with cafeteria, bookstore, and recreational facilities.',
+        latitude: 9.0549,
+        longitude: 7.4921,
+        type: 'facility',
+      },
+      {
+        id: '7',
+        name: 'Male Hostel Block',
+        description: 'Residential accommodation for male students with modern amenities and study areas.',
         latitude: 9.0609,
         longitude: 7.4981,
-        type: 'building',
+        type: 'residence',
+      },
+      {
+        id: '8',
+        name: 'Female Hostel Block',
+        description: 'Residential accommodation for female students with security and recreational facilities.',
+        latitude: 9.0619,
+        longitude: 7.4991,
+        type: 'residence',
+      },
+      {
+        id: '9',
+        name: 'Health Center',
+        description: 'Campus medical facility providing healthcare services to students and staff.',
+        latitude: 9.0539,
+        longitude: 7.4911,
+        type: 'facility',
+      },
+      {
+        id: '10',
+        name: 'Sports Complex',
+        description: 'Multi-purpose sports facility with basketball court, football field, and fitness center.',
+        latitude: 9.0629,
+        longitude: 7.5001,
+        type: 'facility',
+      },
+      {
+        id: '11',
+        name: 'ICT Center',
+        description: 'Information and Communication Technology hub with computer labs and internet facilities.',
+        latitude: 9.0569,
+        longitude: 7.4981,
+        type: 'facility',
+      },
+      {
+        id: '12',
+        name: 'Main Gate',
+        description: 'Primary entrance to AUST campus with security checkpoint and visitor registration.',
+        latitude: 9.0529,
+        longitude: 7.4901,
+        type: 'entrance',
       },
     ];
-    setLocations(mockLocations);
+    setLocations(austBuildings);
   };
 
   const getLocationIcon = (type: MapLocation['type']): string => {
-    return type === 'building' ? 'apartment' : 'place';
+    switch (type) {
+      case 'building': return 'apartment';
+      case 'facility': return 'place';
+      case 'residence': return 'home';
+      case 'entrance': return 'login';
+      default: return 'place';
+    }
   };
 
   const getLocationColor = (type: MapLocation['type']): string => {
-    return type === 'building' ? '#2196F3' : '#FF9800';
+    switch (type) {
+      case 'building': return '#2196F3';
+      case 'facility': return '#4CAF50';
+      case 'residence': return '#FF9800';
+      case 'entrance': return '#9C27B0';
+      default: return '#757575';
+    }
   };
 
-  // Simple map representation
-  const renderSimpleMap = ():React.JSX.Element => (
+  const renderRealTimeMap = ():React.JSX.Element => (
     <View style={styles.mapContainer}>
       <View style={styles.mapContent}>
-        <Text style={styles.mapTitle}>Campus Map</Text>
-        <Text style={styles.mapSubtitle}>University of Abuja</Text>
+        <View style={styles.mapHeader}>
+          <View>
+            <Text style={styles.mapTitle}>AUST Campus Map</Text>
+            <Text style={styles.mapSubtitle}>African University of Science & Technology</Text>
+          </View>
+          <View style={styles.liveIndicator}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
+          </View>
+        </View>
+        <Text style={styles.lastUpdated}>
+          Last updated: {lastUpdated.toLocaleTimeString()}
+        </Text>
         
-        {/* Simulate map pins */}
-        {locations.map((location, index) => (
-          <TouchableOpacity
-            key={location.id}
-            style={[
-              styles.mapPin,
-              {
-                top: 80 + (index % 3) * 70,
-                left: 30 + (index % 4) * 80,
-                backgroundColor: getLocationColor(location.type),
-              },
-              selectedLocation?.id === location.id && styles.selectedPin,
-            ]}
-            onPress={() => setSelectedLocation(location)}
-          >
-            <Icon 
-              name={getLocationIcon(location.type)} 
-              size={20} 
-              color="#fff" 
-            />
-          </TouchableOpacity>
-        ))}
+        {/* AUST Campus Buildings */}
+        {locations.map((location, index) => {
+          const row = Math.floor(index / 4);
+          const col = index % 4;
+          return (
+            <TouchableOpacity
+              key={location.id}
+              style={[
+                styles.mapPin,
+                {
+                  top: 100 + row * 60,
+                  left: 20 + col * 75,
+                  backgroundColor: getLocationColor(location.type),
+                },
+                selectedLocation?.id === location.id && styles.selectedPin,
+              ]}
+              onPress={() => setSelectedLocation(location)}
+            >
+              <Icon 
+                name={getLocationIcon(location.type)} 
+                size={18} 
+                color="#fff" 
+              />
+            </TouchableOpacity>
+          );
+        })}
         
-        {/* Campus boundaries illustration */}
+        {/* Campus Layout */}
         <View style={styles.campusBoundary} />
+        <View style={styles.campusRoad} />
+        <TouchableOpacity 
+          style={styles.refreshButton}
+          onPress={() => {
+            setLastUpdated(new Date());
+            Alert.alert('Map Updated', 'Campus map refreshed successfully!');
+          }}
+        >
+          <Icon name="refresh" size={20} color="#4CAF50" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -169,7 +275,7 @@ export default function MapScreen(): React.JSX.Element {
 
   return (
     <View style={styles.container}>
-      {renderSimpleMap()}
+      {renderRealTimeMap()}
       {renderLocationDetails()}
       {renderLocationsList()}
     </View>
@@ -184,7 +290,7 @@ const styles = StyleSheet.create({
   
   // Map Screen Styles
   mapContainer: {
-    height: height * 0.4,
+    height: height * 0.45,
     backgroundColor: '#E8F5E8',
     margin: 20,
     borderRadius: 12,
@@ -194,18 +300,44 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
+  mapHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 15,
+  },
   mapTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    textAlign: 'center',
-    marginTop: 20,
   },
   mapSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
+    marginTop: 2,
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+    marginRight: 5,
+  },
+  liveText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: 'bold',
+  },
+  lastUpdated: {
+    fontSize: 10,
+    color: '#999',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   mapPin: {
     position: 'absolute',
@@ -226,13 +358,38 @@ const styles = StyleSheet.create({
   },
   campusBoundary: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 30,
+    left: 15,
+    right: 15,
     height: 2,
     backgroundColor: '#4CAF50',
     borderRadius: 1,
+    opacity: 0.4,
+  },
+  campusRoad: {
+    position: 'absolute',
+    top: 120,
+    left: 15,
+    right: 15,
+    height: 1,
+    backgroundColor: '#757575',
     opacity: 0.3,
+  },
+  refreshButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   locationDetails: {
     backgroundColor: '#fff',

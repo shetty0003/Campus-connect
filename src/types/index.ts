@@ -74,9 +74,7 @@ export interface MapLocation {
   description: string;
   latitude: number;
   longitude: number;
-  type: 'building' | 'facility';
-  isOpen: boolean;
-  lastUpdated: string;
+  type: 'building' | 'facility' | 'residence' | 'entrance';
 }
 
 export interface RegisterData {
