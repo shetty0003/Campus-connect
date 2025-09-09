@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "bundler",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2017"
+    ]
+  },
+  "include": [
+    "src/**/*.tsx",
+    "src/**/*.ts"
+  ],
+  "extends": "expo/tsconfig.base"
+}
