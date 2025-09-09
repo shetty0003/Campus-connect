@@ -22,6 +22,7 @@ export default function MapScreen(): React.JSX.Element {
   const [locations, setLocations] = useState<MapLocation[]>([]);
   const [userLocation, setUserLocation] = useState<{latitude: number; longitude: number} | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [useSimpleMap, setUseSimpleMap] = useState<boolean>(false);
 
   useEffect(() => {
     loadAUSTLocations();
@@ -173,7 +174,7 @@ export default function MapScreen(): React.JSX.Element {
     }
   };
 
-  const renderRealMap = (): React.JSX.Element => (
+  const renderSimpleMap = (): React.JSX.Element => (
     <View style={styles.mapContainer}>
       <View style={styles.mapHeader}>
         <View>
@@ -189,55 +190,109 @@ export default function MapScreen(): React.JSX.Element {
         Last updated: {lastUpdated.toLocaleTimeString()}
       </Text>
       
-      <MapView
-        style={styles.map}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        initialRegion={{
-          latitude: 9.0765,
-          longitude: 7.3986,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
-        showsCompass={true}
-        showsScale={true}
-      >
-        {locations.map((location) => (
-          <Marker
-            key={location.id}
-            coordinate={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }}
-            title={location.name}
-            description={location.description}
-            pinColor={getLocationColor(location.type)}
-            onPress={() => setSelectedLocation(location)}
-          />
-        ))}
-        
-        {userLocation && (
-          <Marker
-            coordinate={userLocation}
-            title="Your Location"
-            pinColor="red"
-          />
-        )}
-      </MapView>
+      <View style={styles.simpleMapView}>
+        <Text style={styles.campusLabel}>AUST Campus Layout</Text>
+        {locations.map((location, index) => {
+          const row = Math.floor(index / 3);
+          const col = index % 3;
+          return (
+            <TouchableOpacity
+              key={location.id}
+              style={[
+                styles.mapPin,
+                {
+                  top: 60 + row * 50,
+                  left: 30 + col * 90,
+                  backgroundColor: getLocationColor(location.type),
+                },
+                selectedLocation?.id === location.id && styles.selectedPin,
+              ]}
+              onPress={() => setSelectedLocation(location)}
+            >
+              <Icon name={getLocationIcon(location.type)} size={16} color="#fff" />
+            </TouchableOpacity>
+          );
+        })}
+        <View style={styles.campusGrid} />
+      </View>
       
       <TouchableOpacity 
         style={styles.refreshButton}
         onPress={() => {
           setLastUpdated(new Date());
           getCurrentLocation();
-          Alert.alert('Map Updated', 'Location refreshed successfully!');
+          Alert.alert('Map Updated', 'Campus map refreshed!');
         }}
       >
         <Icon name="refresh" size={20} color="#4CAF50" />
       </TouchableOpacity>
     </View>
   );
+
+  const renderRealMap = (): React.JSX.Element => {
+    try {
+      return (
+        <View style={styles.mapContainer}>
+          <View style={styles.mapHeader}>
+            <View>
+              <Text style={styles.mapTitle}>AUST Campus Map</Text>
+              <Text style={styles.mapSubtitle}>African University of Science & Technology</Text>
+            </View>
+            <View style={styles.liveIndicator}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>LIVE</Text>
+            </View>
+          </View>
+          <Text style={styles.lastUpdated}>
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </Text>
+          
+          <MapView
+            style={styles.map}
+            mapType="standard"
+            initialRegion={{
+              latitude: 9.0765,
+              longitude: 7.3986,
+              latitudeDelta: 0.02,
+              longitudeDelta: 0.02,
+            }}
+            onMapReady={() => console.log('Map is ready')}
+            onError={() => setUseSimpleMap(true)}
+          >
+            {locations.map((location) => (
+              <Marker
+                key={location.id}
+                coordinate={{
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                }}
+                title={location.name}
+                description={location.description}
+                onPress={() => setSelectedLocation(location)}
+              >
+                <View style={[styles.customMarker, { backgroundColor: getLocationColor(location.type) }]}>
+                  <Icon name={getLocationIcon(location.type)} size={16} color="#fff" />
+                </View>
+              </Marker>
+            ))}
+          </MapView>
+          
+          <TouchableOpacity 
+            style={styles.refreshButton}
+            onPress={() => {
+              setLastUpdated(new Date());
+              getCurrentLocation();
+              Alert.alert('Map Updated', 'Location refreshed successfully!');
+            }}
+          >
+            <Icon name="refresh" size={20} color="#4CAF50" />
+          </TouchableOpacity>
+        </View>
+      );
+    } catch (error) {
+      return renderSimpleMap();
+    }
+  };
 
   const renderLocationDetails = (): React.JSX.Element | null => {
     if (!selectedLocation) return null;
@@ -305,7 +360,7 @@ export default function MapScreen(): React.JSX.Element {
 
   return (
     <View style={styles.container}>
-      {renderRealMap()}
+      {useSimpleMap ? renderSimpleMap() : renderRealMap()}
       {renderLocationDetails()}
       {renderLocationsList()}
     </View>
@@ -389,6 +444,54 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
+  },
+  customMarker: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  simpleMapView: {
+    flex: 1,
+    backgroundColor: '#E8F5E8',
+    position: 'relative',
+    margin: 10,
+    borderRadius: 8,
+  },
+  campusLabel: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 20,
+  },
+  mapPin: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  selectedPin: {
+    transform: [{ scale: 1.2 }],
+  },
+  campusGrid: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    height: 1,
+    backgroundColor: '#4CAF50',
+    opacity: 0.3,
   },
   locationDetails: {
     backgroundColor: '#fff',
